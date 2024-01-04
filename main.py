@@ -2,19 +2,20 @@ import requests, json, os, limit_timer, sys, keyboard, re, time
 from configparser import ConfigParser
 
 
-while True:
-    # Função para formatar à uma variável um objeto JSON
-    def jsonfy(directory, variavel):
-        with open(directory, "w+") as file:
-            responseParsed = json.loads(variavel)
-            file.write(json.dumps(responseParsed, indent=2))
-            file.close()
-            return responseParsed
+# Função para formatar à uma variável um objeto JSON
+def jsonfy(directory, variavel):
+    with open(directory, "w+") as file:
+        responseParsed = json.loads(variavel)
+        file.write(json.dumps(responseParsed, indent=2))
+        file.close()
+        return responseParsed
 
-    # Função para pegar o padrão correto do input
-    def isValidDateFormat(dateStr):
-        pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
-        return bool(pattern.match(dateStr))
+# Função para pegar o padrão correto do input
+def isValidDateFormat(dateStr):
+    pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
+    return bool(pattern.match(dateStr))
+
+while True:
 
     # URL's para as requests
     urlFetchNF = "https://api.tiny.com.br/api2/notas.fiscais.pesquisa.php"
