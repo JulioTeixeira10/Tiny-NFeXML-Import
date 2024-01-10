@@ -77,8 +77,8 @@ while True:
         notasJSON = jsonfy(f"{dirProject}\\tempFile.json", resposta)
         nfe = notasJSON["retorno"]["notas_fiscais"]
         idNota = {}
-    except Exception as error:
-        print("\n", error)
+    except KeyError:
+        print("Não foram encontrados XMLs de notas fiscais no periodo selecionado.")
         time.sleep(60)
         sys.exit()
 
