@@ -8,7 +8,7 @@ def create_timer_window():
             if seconds > 0:
                 root.after(1000, countdown, seconds - 1)
             else:
-                messagebox.showinfo("Pronto!", "Clique em OK para continuar a importação dos XMLs.")
+                #messagebox.showinfo("Pronto!", "Clique em OK para continuar a importação dos XMLs.")
                 root.destroy()
 
     def on_closing():

@@ -1,4 +1,5 @@
-import requests, json, os, limit_timer, sys, keyboard, re, time
+import requests, json, os, limit_timer, sys, keyboard, re, time, zipfile
+from modulo_email import sendEmail
 from configparser import ConfigParser
 
 
@@ -14,6 +15,19 @@ def jsonfy(directory, variavel):
 def isValidDateFormat(dateStr):
     pattern = re.compile(r'^\d{2}/\d{2}/\d{4}$')
     return bool(pattern.match(dateStr))
+
+# Função para validar o email digitado
+def is_valid_email(email):
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    match = re.match(email_regex, email)
+    return bool(match)
+
+# Função para zipar os arquivos XML
+def zip_files(files_to_zip, zip_name):
+    with zipfile.ZipFile(zip_name, 'w') as zipf:
+        for file in files_to_zip:
+            zipf.write(file)
+
 
 while True:
 
@@ -37,13 +51,13 @@ while True:
         time.sleep(60)
         sys.exit()
 
-    # Input do usuario para saber o intervalo de data para pegar as notas fiscais
     while True:
         firstDate = input("Digite a data inicial no formato (dd/mm/yyyy): ")   
         if isValidDateFormat(firstDate):
             break
         else:
             print("Formato inválido. Por favor, digite no formato correto (dd/mm/yyyy).")
+            print("\n")
 
     while True:
         lastDate = input("Digite a data final no formato (dd/mm/yyyy): ")       
@@ -51,15 +65,16 @@ while True:
             break
         else:
             print("Formato inválido. Por favor, digite no formato correto (dd/mm/yyyy).")
+            print("\n")
     print("\n")
 
-    # Ajusta a data para salvar
+    # Ajusta a data para salvar os arquivos
     firstDateReplaced = firstDate.replace("/","-")
     lastDateReplaced = lastDate.replace("/","-")
 
     # Cria o diretório se não existe
-    dirNF = "C:\\Users\\User\\Desktop\\extract_NFe_Tiny\\Notas Fiscais"
-    dirProject = "C:\\Users\\User\\Desktop\\extract_NFe_Tiny"
+    dirNF = "C:\\Notas Fiscais"
+    dirMain = f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}"
     os.makedirs(f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}", exist_ok=True)
 
     # Request para pegar as notas fiscais geradas no intervalo selecionado
@@ -72,9 +87,9 @@ while True:
         time.sleep(60)
         sys.exit()
 
-    # Salva em um JSON as informações das notas e extrai os id's e números de nota
+    # Salva em um JSON as informações das notas
     try:
-        notasJSON = jsonfy(f"{dirProject}\\tempFile.json", resposta)
+        notasJSON = jsonfy(f"{dirNF}\\tempFile.json", resposta)
         nfe = notasJSON["retorno"]["notas_fiscais"]
         idNota = {}
     except KeyError:
@@ -82,6 +97,7 @@ while True:
         time.sleep(60)
         sys.exit()
 
+    # extrai e armazena os id's e números das notas
     for nota in nfe:
         try:
             idNota[nota["nota_fiscal"]["id"]] = nota["nota_fiscal"]["numero"]
@@ -97,7 +113,6 @@ while True:
 
     # Loop para baixar e salvar os XMLs
     for id, value in idNota.items():
-        # Variavel para controle da quantide de requests feitas
         requestCounter += 1
 
         # Manda a request para obter o XML da nota
@@ -129,11 +144,47 @@ while True:
 
     # Remove o arquivo temporario
     try:
-        os.remove(f"{dirProject}\\tempFile.json")
+        os.remove(f"{dirNF}\\tempFile.json")
     except Exception as error:
         print("\n", error)
         print("Não foi possivel apagar o arquivo temporario.")
         time.sleep(60)
+
+    # Loop para determinar se o usuário deseja mandar o arquivo por email ou não
+    while True:
+        print("\n")
+        askEmail = int(input("Deseja enviar os arquivos XML por email ?: [1]SIM [2]NÃO "))
+
+        if askEmail == 1:
+            print("\n")
+            nomeRemetente = input("Insira seu nome ou o nome do seu negócio: ")
+
+            while True:
+                emailDestinatario = input("Insira o email do destinatario: ")
+                if is_valid_email(emailDestinatario):
+                    print("\n")
+                    print(f"Enviando o arquivo compactado para o endereço de email: {emailDestinatario}")
+                    break
+                else:
+                    print("Formato inválido. Por favor, certifique-se que seu email esteja correto e tente novamente.")
+                    print("\n")
+            
+            # Comprime em um arquivo .zip os arquivos XML
+            folder_path = dirMain
+            files_to_zip = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+            zip_name = f'{dirMain}.zip'
+            zip_files(files_to_zip, zip_name)
+
+            # Manda o email com as informações necessárias e o arquivo .zip em anexo
+            sendEmail(nomeRemetente, emailDestinatario, firstDateReplaced, lastDateReplaced, zip_name, f"{firstDateReplaced}_{lastDateReplaced}")
+            break
+
+        elif askEmail == 2:
+            break
+
+        else:
+            print("Entrada inválida, tente novamente.")
+            print("\n")
 
     # Resumo de informações para o usuario
     print("\n")
@@ -143,16 +194,12 @@ while True:
     print("Pressione [1] para sair ou [2] para realizar outra importação: ", end='', flush=True)
 
     keyb = keyboard.read_event(suppress=True).name
-
     if keyb == "1":
-        # Se o usuário pressionar 1 o programa será encerrado
         break
     elif keyb == "2":
-        # Se o usuário pressionar 2 o programa será reiniciado
         print("\n")
         continue
     else:
-        # Se o usuário pressionar qualquer outra tecla o programa será encerrado
         break
 
 sys.exit()
