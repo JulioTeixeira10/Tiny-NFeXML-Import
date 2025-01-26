@@ -133,13 +133,6 @@ while True:
             # Parse o arquivo xml
             tree = etree.parse(f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}\\{value}.xml")
 
-            # Encontra a tag xml_nfe, joga seu conteúdo para o elemento superior e se elimina
-            for element in tree.xpath('//xml_nfe'):
-                parent = element.getparent()
-                for child in element:
-                    parent.insert(parent.index(element), child)
-                parent.remove(element)
-
             # Pega o elemento raiz
             root = tree.getroot()
 
