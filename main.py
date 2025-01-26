@@ -1,6 +1,7 @@
 import requests, json, os, limit_timer, sys, keyboard, re, time, zipfile
 from modulo_email import sendEmail
 from configparser import ConfigParser
+from lxml import etree
 
 
 # Função para formatar à uma variável um objeto JSON
@@ -128,6 +129,28 @@ while True:
         try: # Salva os XMLs das notas
             with open(f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}\\{value}.xml", "w+") as file:
                 file.write(resposta)
+                
+            # Parse o arquivo xml
+            tree = etree.parse(f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}\\{value}.xml")
+
+            # Encontra a tag xml_nfe, joga seu conteúdo para o elemento superior e se elimina
+            for element in tree.xpath('//xml_nfe'):
+                parent = element.getparent()
+                for child in element:
+                    parent.insert(parent.index(element), child)
+                parent.remove(element)
+
+            # Pega o elemento raiz
+            root = tree.getroot()
+
+            # Encontra a tag CFe
+            cfe = root.find(".//CFe")
+
+            # Cria uma nova tree com a tag CFe como raiz tornando a tag a nova tag raiz
+            new_tree = etree.ElementTree(cfe)
+
+            # Guarda o arquivo alterado
+            new_tree.write(f"{dirNF}\\{firstDateReplaced}_{lastDateReplaced}\\{value}.xml", pretty_print=True)
         except Exception as error:
             print("\n", error)
             time.sleep(60)
@@ -151,6 +174,7 @@ while True:
         time.sleep(60)
 
     # Loop para determinar se o usuário deseja mandar o arquivo por email ou não
+    """
     while True:
         print("\n")
         askEmail = int(input("Deseja enviar os arquivos XML por email ?: [1]SIM [2]NÃO "))
@@ -185,7 +209,7 @@ while True:
         else:
             print("Entrada inválida, tente novamente.")
             print("\n")
-
+    """
     # Resumo de informações para o usuario
     print("\n")
     print(f"Foram importados {requestSize} arquivos XML de notas fiscais do dia {firstDate} ao dia {lastDate}. \n")
